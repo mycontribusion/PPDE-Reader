@@ -1,42 +1,98 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import FileUploader from './components/FileUploader';
 import ViewerContainer from './components/ViewerContainer';
-
-// If the app is loaded directly on a viewer route (e.g. after a hard refresh
-// while viewing), there's no file in memory — redirect to home cleanly.
-if (window.location.pathname !== '/') {
-  window.history.replaceState(null, '', '/');
-}
+import { saveActiveFile, getActiveFile, clearActiveFile } from './utils/fileStore';
 
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
-  // Open a file: push a viewer route so the browser back button can close it
-  const openFile = useCallback((file) => {
+  // On initial mount, attempt to restore the active file if on a viewer route
+  useEffect(() => {
+    async function restoreSession() {
+      const pathname = window.location.pathname;
+      if (pathname !== '/') {
+        const cachedFile = await getActiveFile();
+        if (cachedFile) {
+          setSelectedFile(cachedFile);
+        } else {
+          // If no stored file is found, redirect to home
+          window.history.replaceState(null, '', '/');
+        }
+      }
+      setIsInitializing(false);
+    }
+
+    restoreSession();
+  }, []);
+
+  // Lock body scroll when a document is open to prevent homepage scrolling
+  useEffect(() => {
+    if (selectedFile) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [selectedFile]);
+
+  // Open a file: persist to IndexedDB & update history state
+  const openFile = useCallback(async (file) => {
     const ext = file.name.split('.').pop().toLowerCase();
-    // Push e.g. /pdf, /docx, /xlsx, /pptx into the history stack
+    await saveActiveFile(file);
     window.history.pushState({ viewer: true }, '', `/${ext}`);
     setSelectedFile(file);
   }, []);
 
-  // Close the viewer: use replaceState so we don't push another entry
-  const closeViewer = useCallback(() => {
+  // Close the viewer: clear IndexedDB & reset history
+  const closeViewer = useCallback(async () => {
+    await clearActiveFile();
     window.history.replaceState(null, '', '/');
     setSelectedFile(null);
   }, []);
 
   // Handle browser back / forward buttons
   useEffect(() => {
-    const onPopState = (e) => {
+    const onPopState = async () => {
       if (window.location.pathname === '/') {
-        // User pressed back from /pdf → close viewer without leaving the app
+        await clearActiveFile();
         setSelectedFile(null);
+      } else {
+        const cachedFile = await getActiveFile();
+        if (cachedFile) {
+          setSelectedFile(cachedFile);
+        } else {
+          window.history.replaceState(null, '', '/');
+          setSelectedFile(null);
+        }
       }
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
+  if (isInitializing) {
+    return (
+      <div className="loader-container" style={{ minHeight: '100vh' }}>
+        <div className="spinner"></div>
+        <p>Loading application...</p>
+      </div>
+    );
+  }
+
+  // Active viewer mode: render ONLY ViewerContainer in full-screen mode
+  if (selectedFile) {
+    return (
+      <ViewerContainer
+        file={selectedFile}
+        onClose={closeViewer}
+      />
+    );
+  }
+
+  // Home mode: render homepage with title & uploader/history
   return (
     <>
       <header className="app-header">
@@ -45,14 +101,7 @@ function App() {
       </header>
 
       <main style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-        {!selectedFile ? (
-          <FileUploader onFileSelect={openFile} />
-        ) : (
-          <ViewerContainer
-            file={selectedFile}
-            onClose={closeViewer}
-          />
-        )}
+        <FileUploader onFileSelect={openFile} />
       </main>
     </>
   );

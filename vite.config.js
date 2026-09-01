@@ -33,8 +33,8 @@ export default defineConfig({
         ],
       },
       manifest: {
-        name: 'PPDE – Offline Document Viewer',
-        short_name: 'PPDE',
+        name: 'PPDE Viewer',
+        short_name: 'PPDE Viewer',
         description: 'Open and read PDF, Word, Excel, and PowerPoint files entirely offline in your browser.',
         theme_color: '#0f172a',
         background_color: '#0f172a',
