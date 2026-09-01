@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/core": "^8.5.1",
     "@extend-ai/react-pptx": "^0.1.2",
     "docx-preview": "^0.4.0",
     "lucide-react": "^1.38.0",

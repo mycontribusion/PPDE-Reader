@@ -131,9 +131,16 @@ body {
 .viewer-container {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 60vh;
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  border-radius: 0;
+  border: none;
+  background: var(--bg-color);
+  padding: 1rem;
 }
 
 .viewer-header {
