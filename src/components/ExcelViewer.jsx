@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 
-export default function ExcelViewer({ file }) {
+export default function ExcelViewer({ file, zoom = 1.0 }) {
   const [workbook, setWorkbook] = useState(null);
   const [activeSheet, setActiveSheet] = useState(null);
   const [sheetData, setSheetData] = useState([]);
@@ -59,8 +59,9 @@ export default function ExcelViewer({ file }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '1rem' }}>
-      <div className="excel-tabs">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+      {/* Sheet Tabs */}
+      <div className="excel-tabs" onClick={(e) => e.stopPropagation()}>
         {workbook.SheetNames.map(name => (
           <button
             key={name}
@@ -72,18 +73,28 @@ export default function ExcelViewer({ file }) {
         ))}
       </div>
       
-      <div style={{ flex: 1, overflow: 'auto' }}>
-        <table className="excel-table">
-          <tbody>
-            {sheetData.map((row, rowIndex) => (
-              <tr key={rowIndex}>
-                {row.map((cell, cellIndex) => (
-                  <td key={cellIndex}>{cell !== undefined && cell !== null ? cell.toString() : ''}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Excel Table Container with Zoom */}
+      <div style={{ flex: 1, overflow: 'auto', background: '#fff', padding: '0.5rem' }}>
+        <div 
+          style={{ 
+            transform: `scale(${zoom})`, 
+            transformOrigin: 'top left',
+            width: `${100 / zoom}%`,
+            transition: 'transform 0.15s ease'
+          }}
+        >
+          <table className="excel-table">
+            <tbody>
+              {sheetData.map((row, rowIndex) => (
+                <tr key={rowIndex}>
+                  {row.map((cell, cellIndex) => (
+                    <td key={cellIndex}>{cell !== undefined && cell !== null ? cell.toString() : ''}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

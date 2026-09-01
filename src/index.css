@@ -181,14 +181,49 @@ body {
   padding: 0;
 }
 
+.viewer-header-panel {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  background: var(--bg-color-light);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  z-index: 100;
+}
+
 .viewer-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
-  padding: 0.75rem 1rem;
-  background: var(--bg-color-light);
-  border-bottom: 1px solid var(--glass-border);
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.viewer-action-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.35rem 1rem;
+  background: rgba(15, 23, 42, 0.65);
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.page-indicator-badge {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--glass-border);
+  padding: 0.25rem 0.65rem;
+  border-radius: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .viewer-header-info {
@@ -222,36 +257,38 @@ body {
 
 .file-name {
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.92rem;
   white-space: nowrap;
   direction: ltr;
 }
 
 .file-size {
   color: #94a3b8;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .btn-close {
-  background: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.15);
   color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.5);
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.4rem;
   cursor: pointer;
+  font-size: 0.78rem;
   font-weight: 600;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.3rem;
   flex-shrink: 0;
-  margin-left: 0.75rem;
+  margin-left: 0.5rem;
 }
 
 .btn-close:hover {
-  background: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.35);
+  border-color: rgba(239, 68, 68, 0.7);
 }
 
 .viewer-content {

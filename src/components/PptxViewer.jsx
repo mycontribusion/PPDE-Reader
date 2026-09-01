@@ -2,11 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { ReactPptxViewer } from '@extend-ai/react-pptx';
 import '@extend-ai/react-pptx/styles.css';
 
-export default function PptxViewer({ file }) {
+export default function PptxViewer({ file, zoom = 1.0 }) {
   const [loading, setLoading] = useState(true);
 
-  // `@extend-ai/react-pptx` natively accepts a File object in its `source` prop, 
-  // but we can add a small delay to simulate parsing readiness or ensure it's loaded.
   useEffect(() => {
     if (file) {
       setLoading(false);
@@ -23,13 +21,32 @@ export default function PptxViewer({ file }) {
   }
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <ReactPptxViewer 
-        source={file}
-        mode="continuous"
-        showThumbnails={true}
-        showToolbar={true}
-      />
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <div 
+        style={{ 
+          flex: 1, 
+          overflow: 'auto', 
+          backgroundColor: '#0f172a',
+          display: 'flex',
+          justifyContent: 'center'
+        }}
+      >
+        <div 
+          style={{ 
+            width: '100%', 
+            transform: `scale(${zoom})`, 
+            transformOrigin: 'top center',
+            transition: 'transform 0.15s ease'
+          }}
+        >
+          <ReactPptxViewer 
+            source={file}
+            mode="continuous"
+            showThumbnails={true}
+            showToolbar={true}
+          />
+        </div>
+      </div>
     </div>
   );
 }
