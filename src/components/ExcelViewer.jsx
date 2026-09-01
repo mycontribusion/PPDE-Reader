@@ -1,11 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import * as XLSX from 'xlsx';
 
-export default function ExcelViewer({ file, zoom = 1.0 }) {
+export default function ExcelViewer({ file, zoom = 1.0, onPageChange }) {
   const [workbook, setWorkbook] = useState(null);
   const [activeSheet, setActiveSheet] = useState(null);
   const [sheetData, setSheetData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fitWidth, setFitWidth] = useState(window.innerWidth);
+
+  const scrollRef = useRef(null);
+  const onPageChangeRef = useRef(onPageChange);
+  onPageChangeRef.current = onPageChange;
+
+  useLayoutEffect(() => {
+    if (!scrollRef.current) return;
+    const el = scrollRef.current;
+
+    const measureWidth = () => {
+      if (el.clientWidth > 0) {
+        setFitWidth(el.clientWidth);
+      }
+    };
+
+    measureWidth();
+    const observer = new ResizeObserver(measureWidth);
+    observer.observe(el);
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -26,6 +48,10 @@ export default function ExcelViewer({ file, zoom = 1.0 }) {
           const ws = wb.Sheets[firstSheetName];
           const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
           setSheetData(json);
+
+          if (onPageChangeRef.current) {
+            onPageChangeRef.current({ current: 1, total: wb.SheetNames.length });
+          }
         }
         setLoading(false);
       };
@@ -38,11 +64,15 @@ export default function ExcelViewer({ file, zoom = 1.0 }) {
     };
   }, [file]);
 
-  const handleSheetChange = (sheetName) => {
+  const handleSheetChange = (sheetName, index) => {
     setActiveSheet(sheetName);
     const ws = workbook.Sheets[sheetName];
     const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
     setSheetData(json);
+
+    if (onPageChangeRef.current && workbook) {
+      onPageChangeRef.current({ current: index + 1, total: workbook.SheetNames.length });
+    }
   };
 
   if (loading) {
@@ -58,32 +88,33 @@ export default function ExcelViewer({ file, zoom = 1.0 }) {
     return <div style={{ padding: '2rem', textAlign: 'center' }}>No data found.</div>;
   }
 
+  const tableWidth = Math.max(fitWidth, Math.round(fitWidth * zoom));
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', position: 'relative', background: '#fff' }}>
       {/* Sheet Tabs */}
       <div className="excel-tabs" onClick={(e) => e.stopPropagation()}>
-        {workbook.SheetNames.map(name => (
+        {workbook.SheetNames.map((name, idx) => (
           <button
             key={name}
             className={`excel-tab ${activeSheet === name ? 'active' : ''}`}
-            onClick={() => handleSheetChange(name)}
+            onClick={() => handleSheetChange(name, idx)}
           >
             {name}
           </button>
         ))}
       </div>
       
-      {/* Excel Table Container with Zoom */}
-      <div style={{ flex: 1, overflow: 'auto', background: '#fff', padding: '0.5rem' }}>
+      {/* Excel Table Container — Full 100% width and height edge-to-edge */}
+      <div ref={scrollRef} style={{ flex: 1, overflow: 'auto', background: '#fff', padding: 0, margin: 0, width: '100%', height: '100%' }}>
         <div 
           style={{ 
-            transform: `scale(${zoom})`, 
-            transformOrigin: 'top left',
-            width: `${100 / zoom}%`,
-            transition: 'transform 0.15s ease'
+            width: `${tableWidth}px`,
+            minWidth: '100%',
+            transition: 'width 0.15s ease'
           }}
         >
-          <table className="excel-table">
+          <table className="excel-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <tbody>
               {sheetData.map((row, rowIndex) => (
                 <tr key={rowIndex}>

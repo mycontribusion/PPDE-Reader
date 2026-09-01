@@ -18,7 +18,7 @@ export default function ViewerContainer({ file, onClose }) {
 
   const fileName = file.name;
   const extension = fileName.split('.').pop().toLowerCase();
-  const fullPath = file.path || file.webkitRelativePath || fileName;
+  const fullPath = file.path || file.webkitRelativePath || file.fullPath || fileName;
 
   const getFileIcon = () => {
     switch (extension) {
@@ -45,9 +45,9 @@ export default function ViewerContainer({ file, onClose }) {
   const renderViewer = () => {
     switch (extension) {
       case 'pdf':  return <PdfViewer file={file} zoom={zoom} onPageChange={handlePageChange} />;
-      case 'docx': return <DocxViewer file={file} zoom={zoom} />;
-      case 'xlsx': return <ExcelViewer file={file} zoom={zoom} />;
-      case 'pptx': return <PptxViewer file={file} zoom={zoom} />;
+      case 'docx': return <DocxViewer file={file} zoom={zoom} onPageChange={handlePageChange} />;
+      case 'xlsx': return <ExcelViewer file={file} zoom={zoom} onPageChange={handlePageChange} />;
+      case 'pptx': return <PptxViewer file={file} zoom={zoom} onPageChange={handlePageChange} showControls={showControls} />;
       default:
         return (
           <div className="loader-container">

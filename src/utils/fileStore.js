@@ -103,7 +103,8 @@ export async function getActiveFile() {
           lastModified: record.lastModified
         });
         if (record.fullPath) {
-          Object.defineProperty(restoredFile, 'path', { value: record.fullPath, writable: false });
+          Object.defineProperty(restoredFile, 'path', { value: record.fullPath, writable: true, configurable: true });
+          restoredFile.fullPath = record.fullPath;
         }
         resolve(restoredFile);
       };
@@ -181,7 +182,8 @@ export async function loadRecentFile(id) {
           lastModified: record.lastModified
         });
         if (record.fullPath) {
-          Object.defineProperty(file, 'path', { value: record.fullPath, writable: false });
+          Object.defineProperty(file, 'path', { value: record.fullPath, writable: true, configurable: true });
+          file.fullPath = record.fullPath;
         }
         resolve(file);
       };

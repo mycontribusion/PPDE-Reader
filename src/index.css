@@ -1,28 +1,40 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --bg-color: #0f172a; /* Slate 900 */
-  --bg-color-light: #1e293b; /* Slate 800 */
-  --text-primary: #f8fafc; /* Slate 50 */
-  --text-secondary: #94a3b8; /* Slate 400 */
-  --accent: #3b82f6; /* Blue 500 */
-  --accent-hover: #60a5fa; /* Blue 400 */
-  
+  --bg-color: #0f172a;
+  /* Slate 900 */
+  --bg-color-light: #1e293b;
+  /* Slate 800 */
+  --text-primary: #f8fafc;
+  /* Slate 50 */
+  --text-secondary: #94a3b8;
+  /* Slate 400 */
+  --accent: #3b82f6;
+  /* Blue 500 */
+  --accent-hover: #60a5fa;
+  /* Blue 400 */
+
   --glass-bg: rgba(30, 41, 59, 0.7);
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html, body {
+html,
+body {
   width: 100%;
   max-width: 100vw;
   overflow-x: hidden !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 body {
@@ -32,10 +44,10 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-image: 
-    radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
-    radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
-    radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+  background-image:
+    radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+    radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
   background-attachment: fixed;
   overflow-x: hidden;
 }
@@ -51,6 +63,9 @@ body {
   flex: 1;
   box-sizing: border-box;
   overflow-x: hidden;
+  border: none;
+  outline: none;
+  box-shadow: none;
 }
 
 .uploader-wrapper {
@@ -123,7 +138,8 @@ body {
   box-sizing: border-box;
 }
 
-.file-uploader:hover, .file-uploader.drag-active {
+.file-uploader:hover,
+.file-uploader.drag-active {
   background: rgba(59, 130, 246, 0.15);
   border-color: var(--accent-hover);
   transform: translateY(-2px);
@@ -166,7 +182,8 @@ body {
 }
 
 /* Viewer Container */
-.viewer-container {
+.viewer-container,
+.viewer-container.glass-panel {
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -176,7 +193,9 @@ body {
   height: 100vh;
   z-index: 9999;
   border-radius: 0;
-  border: none;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   background: var(--bg-color);
   padding: 0;
 }
@@ -242,7 +261,7 @@ body {
   overflow-x: auto;
   white-space: nowrap;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.2) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
   padding-bottom: 2px;
 }
 
@@ -251,7 +270,7 @@ body {
 }
 
 .viewer-title-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 2px;
 }
 
@@ -434,7 +453,7 @@ body {
 }
 
 .pdf-zoom-btn {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--text-primary);
   border: 1px solid var(--glass-border);
   width: 32px;
@@ -449,7 +468,7 @@ body {
 }
 
 .pdf-zoom-btn:hover:not(:disabled) {
-  background: rgba(255,255,255,0.18);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .pdf-zoom-btn:disabled {
@@ -458,7 +477,7 @@ body {
 }
 
 .pdf-zoom-reset {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--text-secondary);
   border: 1px solid var(--glass-border);
   padding: 0 0.75rem;
@@ -477,7 +496,7 @@ body {
 }
 
 .pdf-zoom-reset:hover {
-  background: rgba(255,255,255,0.18);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .pdf-zoom-reset.active {
@@ -486,7 +505,7 @@ body {
 }
 
 .react-pdf__Page {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
 
 /* Excel Viewer */
@@ -495,7 +514,8 @@ body {
   border-collapse: collapse;
 }
 
-.excel-table th, .excel-table td {
+.excel-table th,
+.excel-table td {
   border: 1px solid #ddd;
   padding: 8px;
   text-align: left;
@@ -527,6 +547,21 @@ body {
   border-bottom: 2px solid var(--accent);
 }
 
+.excel-table {
+  width: 100% !important;
+  border-collapse: collapse;
+  background: #fff;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.excel-table td, .excel-table th {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
 /* Loader */
 .loader-container {
   display: flex;
@@ -549,7 +584,9 @@ body {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Mobile Responsiveness Improvements */
@@ -577,10 +614,6 @@ body {
     padding: 1rem;
   }
 
-  .recent-item {
-    padding: 0.5rem 0.6rem;
-  }
-
   .recent-item-path {
     font-size: 0.8rem;
   }
@@ -599,3 +632,118 @@ body {
   }
 }
 
+/* Floating Micro PPTX Thumbnail Toggle Button */
+.pptx-thumbnail-toggle {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  z-index: 50;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(6px);
+  color: rgba(248, 250, 252, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.3rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.pptx-thumbnail-toggle:hover {
+  background: rgba(30, 41, 59, 0.85);
+  color: #ffffff;
+  border-color: var(--glass-border);
+  transform: scale(1.05);
+}
+
+/* Compact PPTX sidebar overrides */
+div[class*="sidebar"],
+.pptx-sidebar {
+  width: 105px !important;
+  min-width: 105px !important;
+  max-width: 105px !important;
+  padding: 4px !important;
+  background: rgba(15, 23, 42, 0.9) !important;
+}
+
+div[class*="thumbnail"],
+.pptx-thumbnail {
+  width: 90px !important;
+  margin: 4px auto !important;
+}
+
+/* Fix @extend-ai/react-pptx workspace height so slides span 100% vertical space */
+.rpv-root {
+  height: 100% !important;
+  min-height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+.rpv-workspace {
+  flex: 1 !important;
+  min-height: 100% !important;
+  max-height: none !important;
+  height: 100% !important;
+}
+
+.rpv-stage {
+  height: 100% !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.rpv-viewport {
+  height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Ensure DOCX documents fill 100% width edge-to-edge with zero side margins and zero left-crop.
+   NOTE: docx-preview uses the className option as a prefix; we pass 'docx-document',
+   so the actual classes are .docx-document-wrapper and section.docx-document. */
+.docx-document-wrapper {
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  align-items: stretch !important; /* override library's `align-items: center` that was cropping the page */
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+section.docx-document {
+  margin: 0 !important;
+  padding: 1rem !important;
+  box-shadow: none !important;
+  /* Keep docx-preview's inline width (from pgSz) so the page sits flush-left at its true width. */
+  max-width: none !important;
+  box-sizing: border-box !important;
+}
+
+/* Belt-and-braces: also support the legacy/wrapped variant if className is ever changed. */
+.docx-wrapper {
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  align-items: stretch !important;
+}
+
+section.docx {
+  margin: 0 !important;
+  padding: 1rem !important;
+  box-shadow: none !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+}

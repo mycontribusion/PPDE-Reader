@@ -1,28 +1,42 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
 
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
-const PAGE_GAP = 8;
-const HD_DPR   = Math.max(window.devicePixelRatio || 1, 2.0);
+const PAGE_GAP = 4;
+const FAST_DPR = Math.min(window.devicePixelRatio || 1, 1.5);
 
 export default function PdfViewer({ file, zoom = 1.0, onPageChange }) {
   const [numPages, setNumPages] = useState(null);
   const [fileUrl, setFileUrl]   = useState(null);
-  const [fitWidth, setFitWidth] = useState(window.innerWidth - 17);
+  const [fitWidth, setFitWidth] = useState(window.innerWidth);
 
-  const outerRef = useRef(null);
+  const outerRef        = useRef(null);
+  const numPagesRef     = useRef(null);
+  const onPageChangeRef = useRef(onPageChange);
+
+  // Keep refs up-to-date without triggering effect dependency changes
+  numPagesRef.current = numPages;
+  onPageChangeRef.current = onPageChange;
 
   useEffect(() => {
     if (!file) return;
     const url = URL.createObjectURL(file);
     setFileUrl(url);
     setNumPages(null);
+    numPagesRef.current = null;
     return () => URL.revokeObjectURL(url);
   }, [file]);
+
+  // Window resize handler to maintain exact fit width without scrollbar measurement races
+  useEffect(() => {
+    const handleResize = () => {
+      setFitWidth(window.innerWidth);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useLayoutEffect(() => {
     if (!outerRef.current) return;
@@ -31,39 +45,33 @@ export default function PdfViewer({ file, zoom = 1.0, onPageChange }) {
       el = el.parentElement;
     }
 
-    const measureWidth = () => {
-      const targetEl = (el && el.clientWidth > 0) ? el : document.documentElement;
-      if (targetEl && targetEl.clientWidth > 0) {
-        setFitWidth(targetEl.clientWidth);
-      }
-    };
-
-    measureWidth();
-    const observer = new ResizeObserver(measureWidth);
-    if (el) observer.observe(el);
-
-    // Track active page on scroll
+    // Fast scroll-based page number tracking
     const onScroll = () => {
-      if (!el || !numPages) return;
+      if (!el || !numPagesRef.current) return;
       const totalH = el.scrollHeight;
-      const rowH = totalH / numPages;
+      const pagesCount = numPagesRef.current;
+      const rowH = totalH / pagesCount;
       if (rowH > 0) {
-        const page = Math.min(numPages, Math.max(1, Math.floor((el.scrollTop + rowH * 0.3) / rowH) + 1));
-        if (onPageChange) onPageChange({ current: page, total: numPages });
+        const page = Math.min(pagesCount, Math.max(1, Math.floor((el.scrollTop + rowH * 0.3) / rowH) + 1));
+        if (onPageChangeRef.current) {
+          onPageChangeRef.current({ current: page, total: pagesCount });
+        }
       }
     };
 
     if (el) el.addEventListener('scroll', onScroll, { passive: true });
 
     return () => {
-      observer.disconnect();
       if (el) el.removeEventListener('scroll', onScroll);
     };
-  }, [numPages, onPageChange]);
+  }, []);
 
   const handleLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
-    if (onPageChange) onPageChange({ current: 1, total: numPages });
+    numPagesRef.current = numPages;
+    if (onPageChangeRef.current) {
+      onPageChangeRef.current({ current: 1, total: numPages });
+    }
   };
 
   const pageWidth = Math.round(fitWidth * zoom);
@@ -73,8 +81,8 @@ export default function PdfViewer({ file, zoom = 1.0, onPageChange }) {
   );
 
   return (
-    <div ref={outerRef} style={{ width: '100%', position: 'relative' }}>
-      <div className="pdf-pages-wrapper" style={{ width: pageWidth, minWidth: pageWidth, margin: '0 auto', paddingBottom: '2rem' }}>
+    <div ref={outerRef} style={{ width: '100%', position: 'relative', background: '#0f172a' }}>
+      <div className="pdf-pages-wrapper" style={{ width: pageWidth, minWidth: pageWidth, margin: 0, paddingBottom: '2rem' }}>
         <Document
           file={fileUrl}
           onLoadSuccess={handleLoadSuccess}
@@ -84,14 +92,14 @@ export default function PdfViewer({ file, zoom = 1.0, onPageChange }) {
           {numPages && Array.from({ length: numPages }, (_, i) => (
             <div
               key={i}
-              style={{ display: 'flex', justifyContent: 'center', marginBottom: PAGE_GAP }}
+              style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: PAGE_GAP }}
             >
               <Page
                 pageNumber={i + 1}
                 width={pageWidth}
-                devicePixelRatio={HD_DPR}
-                renderAnnotationLayer={true}
-                renderTextLayer={true}
+                devicePixelRatio={FAST_DPR}
+                renderAnnotationLayer={false}
+                renderTextLayer={false}
               />
             </div>
           ))}
