@@ -227,42 +227,96 @@ body {
   min-height: 0;
 }
 
-/* PDF Viewer Overrides */
-.react-pdf__Document {
+/* PDF Viewer – outer wrapper */
+.pdf-outer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #f1f5f9;
+}
+
+/* Zoom toolbar */
+.pdf-zoom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  background: var(--bg-color-light);
+  border-bottom: 1px solid var(--glass-border);
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.pdf-zoom-btn {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+  width: 32px;
+  height: 32px;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.pdf-zoom-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,0.18);
+}
+
+.pdf-zoom-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pdf-zoom-reset {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-secondary);
+  border: 1px solid var(--glass-border);
+  padding: 0 0.75rem;
+  height: 32px;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: background 0.15s ease;
+  min-width: 64px;
+  justify-content: center;
+}
+
+.pdf-zoom-reset:hover {
+  background: rgba(255,255,255,0.18);
+}
+
+.pdf-zoom-reset.active {
+  color: var(--accent-hover);
+  border-color: var(--accent);
+}
+
+/* Scrollable page area */
+.pdf-scroll {
+  flex: 1;
+  overflow: auto;
+  background: #e2e8f0;
+  padding: 0.75rem 0;
+}
+
+.pdf-scroll .react-pdf__Document {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
+  gap: 0;
+  padding: 0;
 }
 
 .react-pdf__Page {
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-.pdf-controls {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  align-items: center;
-  padding: 1rem;
-  background: var(--bg-color-light);
-  color: white;
-  border-radius: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.pdf-controls button {
-  background: var(--accent);
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
-  cursor: pointer;
-}
-.pdf-controls button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
 }
 
 /* Excel Viewer */
