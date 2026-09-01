@@ -3,29 +3,23 @@ import * as docx from 'docx-preview';
 
 export default function DocxViewer({ file, zoom = 1.0, onPageChange }) {
   const outerRef         = useRef(null);
-  // Use a callback ref so we know the exact moment containerRef is ready in DOM
   const containerNodeRef = useRef(null);
   const [containerReady, setContainerReady] = useState(false);
 
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState(null);
   const [naturalWidth, setNaturalWidth] = useState(816);
-  // Measure the ACTUAL scroll container width (.viewer-content), not window.innerWidth.
-  // This matches the working PptxViewer/ExcelViewer pattern and avoids left/right crop
-  // caused by scrollbars, mobile safe-areas, or browser chrome.
   const [contentWidth, setContentWidth] = useState(0);
 
   const onPageChangeRef = useRef(onPageChange);
   onPageChangeRef.current = onPageChange;
+  const scrollCleanupRef  = useRef(null);
 
-  // Callback ref — fires as soon as the div is mounted
   const containerCallbackRef = useCallback((node) => {
     containerNodeRef.current = node;
     if (node) setContainerReady(true);
   }, []);
 
-  // Watch the .viewer-content ancestor (the real horizontal scroll container)
-  // and keep `contentWidth` in sync. This replaces the old window.innerWidth logic.
   useLayoutEffect(() => {
     const outer = outerRef.current;
     if (!outer) return;
@@ -50,15 +44,12 @@ export default function DocxViewer({ file, zoom = 1.0, onPageChange }) {
     };
   }, []);
 
-  // Render the document once we have both the file AND the DOM node
   useEffect(() => {
     if (!file || !containerReady || !containerNodeRef.current) return;
     let isMounted = true;
 
     setLoading(true);
     setError(null);
-
-    // Clear any previous render
     containerNodeRef.current.innerHTML = '';
 
     const renderOptions = {
@@ -74,6 +65,58 @@ export default function DocxViewer({ file, zoom = 1.0, onPageChange }) {
       debug: false,
     };
 
+    const setupPageTracking = () => {
+      const node = containerNodeRef.current;
+      if (!node) return;
+
+      const sections = node.querySelectorAll('section.docx-document, section.docx, .docx-wrapper > section');
+      const totalPages = sections.length > 0 ? sections.length : 1;
+
+      if (onPageChangeRef.current) {
+        onPageChangeRef.current({ current: 1, total: totalPages });
+      }
+
+      let scrollEl = outerRef.current?.parentElement;
+      while (scrollEl && !scrollEl.classList.contains('viewer-content')) {
+        scrollEl = scrollEl.parentElement;
+      }
+
+      if (scrollEl && sections.length > 0) {
+        if (scrollCleanupRef.current) {
+          scrollCleanupRef.current();
+          scrollCleanupRef.current = null;
+        }
+
+        const onScroll = () => {
+          const scrollRect = scrollEl.getBoundingClientRect();
+          const visibleCenter = (scrollRect.top + scrollRect.bottom) / 2;
+
+          let currentPage = 1;
+          let closestDist = Infinity;
+          sections.forEach((sec, i) => {
+            const rect = sec.getBoundingClientRect();
+            const secCenter = (rect.top + rect.bottom) / 2;
+            const dist = Math.abs(secCenter - visibleCenter);
+            if (dist < closestDist) {
+              closestDist = dist;
+              currentPage = i + 1;
+            }
+          });
+
+          if (onPageChangeRef.current) {
+            onPageChangeRef.current({ current: currentPage, total: totalPages });
+          }
+        };
+
+        scrollEl.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+
+        scrollCleanupRef.current = () => {
+          scrollEl.removeEventListener('scroll', onScroll);
+        };
+      }
+    };
+
     const reader = new FileReader();
     reader.onload = (e) => {
       if (!isMounted) return;
@@ -83,46 +126,19 @@ export default function DocxViewer({ file, zoom = 1.0, onPageChange }) {
           if (!isMounted) return;
           setLoading(false);
 
-          setTimeout(() => {
-            const node = containerNodeRef.current;
-            if (!node) return;
+          // Measure initial page width
+          const firstSection = containerNodeRef.current.querySelector('section.docx-document, section.docx');
+          if (firstSection) {
+            const natural = firstSection.offsetWidth || 816;
+            if (natural > 0) setNaturalWidth(natural);
+          }
 
-            // Measure actual rendered page width from the first <section>
-            const firstSection = node.querySelector('section.docx-document, section.docx');
-            if (firstSection) {
-              const natural = firstSection.offsetWidth || 816;
-              if (natural > 0) setNaturalWidth(natural);
-            }
+          // Initial tracking
+          setupPageTracking();
 
-            // Page tracking
-            const sections = node.querySelectorAll('section.docx-document, section.docx');
-            const totalPages = sections.length > 0 ? sections.length : 1;
-            if (onPageChangeRef.current) {
-              onPageChangeRef.current({ current: 1, total: totalPages });
-            }
-
-            // Walk up to .viewer-content for scroll tracking
-            let scrollEl = outerRef.current?.parentElement;
-            while (scrollEl && !scrollEl.classList.contains('viewer-content')) {
-              scrollEl = scrollEl.parentElement;
-            }
-
-            if (scrollEl && totalPages > 1) {
-              const onScroll = () => {
-                const totalH = scrollEl.scrollHeight;
-                const rowH = totalH / totalPages;
-                if (rowH > 0) {
-                  const page = Math.min(totalPages, Math.max(1,
-                    Math.floor((scrollEl.scrollTop + rowH * 0.3) / rowH) + 1
-                  ));
-                  if (onPageChangeRef.current) {
-                    onPageChangeRef.current({ current: page, total: totalPages });
-                  }
-                }
-              };
-              scrollEl.addEventListener('scroll', onScroll, { passive: true });
-            }
-          }, 150);
+          // Delayed re-check after images/fonts finish layout
+          setTimeout(setupPageTracking, 300);
+          setTimeout(setupPageTracking, 800);
         })
         .catch((err) => {
           if (isMounted) {
@@ -138,11 +154,16 @@ export default function DocxViewer({ file, zoom = 1.0, onPageChange }) {
     };
 
     reader.readAsArrayBuffer(file);
-    return () => { isMounted = false; };
+
+    return () => {
+      isMounted = false;
+      if (scrollCleanupRef.current) {
+        scrollCleanupRef.current();
+        scrollCleanupRef.current = null;
+      }
+    };
   }, [file, containerReady]);
 
-  // Scale is computed against the real .viewer-content width, not window.innerWidth.
-  // Fall back to 800 only on the very first paint before the observer has measured.
   const baseFit = contentWidth > 0 ? contentWidth / Math.max(1, naturalWidth) : 1;
   const scale   = baseFit * zoom;
 
@@ -154,9 +175,6 @@ export default function DocxViewer({ file, zoom = 1.0, onPageChange }) {
     <div
       ref={outerRef}
       style={{
-        // Pin the outer wrapper to the actual scroll-container width when fitting,
-        // so the page sits flush-left with no horizontal scrollbar at fit-zoom.
-        // When zoomed in beyond fit, grow to naturalWidth * scale so the user can scroll.
         width: contentWidth > 0
           ? `${Math.max(contentWidth, Math.ceil(naturalWidth * scale))}px`
           : `${Math.ceil(naturalWidth * scale)}px`,
@@ -164,7 +182,6 @@ export default function DocxViewer({ file, zoom = 1.0, onPageChange }) {
         position: 'relative',
       }}
     >
-      {/* Loading overlay — shown while docx-preview is rendering */}
       {loading && (
         <div className="loader-container" style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10,
@@ -175,7 +192,6 @@ export default function DocxViewer({ file, zoom = 1.0, onPageChange }) {
         </div>
       )}
 
-      {/* Content div: always in DOM so containerCallbackRef fires immediately */}
       <div
         ref={containerCallbackRef}
         style={{

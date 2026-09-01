@@ -1,11 +1,78 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
-const PAGE_GAP = 4;
-const FAST_DPR = Math.min(window.devicePixelRatio || 1, 1.5);
+const PAGE_GAP = 6;
+const FAST_DPR = Math.min(window.devicePixelRatio || 1, 1.25);
+
+// Sub-component that uses IntersectionObserver to lazily render PDF pages only when in/near viewport
+function PdfPageItem({ pageNumber, pageWidth, FAST_DPR }) {
+  const [isVisible, setIsVisible] = useState(pageNumber === 1);
+  const containerRef = useRef(null);
+  const estimatedHeight = Math.round(pageWidth * 1.414);
+
+  useEffect(() => {
+    if (pageNumber === 1) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+          } else {
+            setIsVisible(false);
+          }
+        });
+      },
+      {
+        rootMargin: '600px 0px 600px 0px',
+        threshold: 0.01,
+      }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [pageNumber]);
+
+  return (
+    <div
+      ref={containerRef}
+      data-page-number={pageNumber}
+      style={{
+        display: 'flex',
+        justifyContent: 'flex-start',
+        marginBottom: PAGE_GAP,
+        minHeight: `${estimatedHeight}px`,
+        width: `${pageWidth}px`,
+      }}
+    >
+      {isVisible ? (
+        <Page
+          pageNumber={pageNumber}
+          width={pageWidth}
+          devicePixelRatio={FAST_DPR}
+          renderAnnotationLayer={false}
+          renderTextLayer={false}
+        />
+      ) : (
+        <div
+          style={{
+            width: `${pageWidth}px`,
+            height: `${estimatedHeight}px`,
+            backgroundColor: '#1e293b',
+            borderRadius: '4px',
+            opacity: 0.3,
+          }}
+        />
+      )}
+    </div>
+  );
+}
 
 export default function PdfViewer({ file, zoom = 1.0, onPageChange }) {
   const [numPages, setNumPages] = useState(null);
@@ -13,11 +80,7 @@ export default function PdfViewer({ file, zoom = 1.0, onPageChange }) {
   const [fitWidth, setFitWidth] = useState(window.innerWidth);
 
   const outerRef        = useRef(null);
-  const numPagesRef     = useRef(null);
   const onPageChangeRef = useRef(onPageChange);
-
-  // Keep refs up-to-date without triggering effect dependency changes
-  numPagesRef.current = numPages;
   onPageChangeRef.current = onPageChange;
 
   useEffect(() => {
@@ -25,11 +88,9 @@ export default function PdfViewer({ file, zoom = 1.0, onPageChange }) {
     const url = URL.createObjectURL(file);
     setFileUrl(url);
     setNumPages(null);
-    numPagesRef.current = null;
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
-  // Window resize handler to maintain exact fit width without scrollbar measurement races
   useEffect(() => {
     const handleResize = () => {
       setFitWidth(window.innerWidth);
@@ -38,37 +99,62 @@ export default function PdfViewer({ file, zoom = 1.0, onPageChange }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useLayoutEffect(() => {
-    if (!outerRef.current) return;
-    let el = outerRef.current.parentElement;
-    while (el && el.classList && !el.classList.contains('viewer-content')) {
-      el = el.parentElement;
+  // Reliable scroll listener for PDF page tracking
+  useEffect(() => {
+    if (!numPages || !outerRef.current) return;
+
+    let scrollEl = outerRef.current.parentElement;
+    while (scrollEl && !scrollEl.classList.contains('viewer-content')) {
+      scrollEl = scrollEl.parentElement;
     }
 
-    // Fast scroll-based page number tracking
+    if (!scrollEl) return;
+
     const onScroll = () => {
-      if (!el || !numPagesRef.current) return;
-      const totalH = el.scrollHeight;
-      const pagesCount = numPagesRef.current;
-      const rowH = totalH / pagesCount;
-      if (rowH > 0) {
-        const page = Math.min(pagesCount, Math.max(1, Math.floor((el.scrollTop + rowH * 0.3) / rowH) + 1));
+      const pageItems = outerRef.current?.querySelectorAll('[data-page-number]');
+      if (pageItems && pageItems.length > 0) {
+        const scrollRect = scrollEl.getBoundingClientRect();
+        const visibleCenter = (scrollRect.top + scrollRect.bottom) / 2;
+
+        let currentPage = 1;
+        let closestDist = Infinity;
+
+        pageItems.forEach((el) => {
+          const rect = el.getBoundingClientRect();
+          const pNum = parseInt(el.getAttribute('data-page-number'), 10);
+          const elCenter = (rect.top + rect.bottom) / 2;
+          const dist = Math.abs(elCenter - visibleCenter);
+          if (dist < closestDist) {
+            closestDist = dist;
+            if (!isNaN(pNum)) currentPage = pNum;
+          }
+        });
+
         if (onPageChangeRef.current) {
-          onPageChangeRef.current({ current: page, total: pagesCount });
+          onPageChangeRef.current({ current: currentPage, total: numPages });
+        }
+      } else {
+        const totalH = scrollEl.scrollHeight;
+        const rowH = totalH / numPages;
+        if (rowH > 0) {
+          const page = Math.min(numPages, Math.max(1, Math.floor((scrollEl.scrollTop + rowH * 0.3) / rowH) + 1));
+          if (onPageChangeRef.current) {
+            onPageChangeRef.current({ current: page, total: numPages });
+          }
         }
       }
     };
 
-    if (el) el.addEventListener('scroll', onScroll, { passive: true });
+    scrollEl.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
 
     return () => {
-      if (el) el.removeEventListener('scroll', onScroll);
+      scrollEl.removeEventListener('scroll', onScroll);
     };
-  }, []);
+  }, [numPages]);
 
   const handleLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
-    numPagesRef.current = numPages;
     if (onPageChangeRef.current) {
       onPageChangeRef.current({ current: 1, total: numPages });
     }
@@ -90,18 +176,12 @@ export default function PdfViewer({ file, zoom = 1.0, onPageChange }) {
           error={<div className="loader-container"><p>⚠ Failed to load PDF.</p></div>}
         >
           {numPages && Array.from({ length: numPages }, (_, i) => (
-            <div
-              key={i}
-              style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: PAGE_GAP }}
-            >
-              <Page
-                pageNumber={i + 1}
-                width={pageWidth}
-                devicePixelRatio={FAST_DPR}
-                renderAnnotationLayer={false}
-                renderTextLayer={false}
-              />
-            </div>
+            <PdfPageItem
+              key={i + 1}
+              pageNumber={i + 1}
+              pageWidth={pageWidth}
+              FAST_DPR={FAST_DPR}
+            />
           ))}
         </Document>
       </div>

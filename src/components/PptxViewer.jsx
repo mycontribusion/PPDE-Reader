@@ -36,37 +36,73 @@ export default function PptxViewer({ file, zoom = 1.0, onPageChange, showControl
     return () => observer.disconnect();
   }, []);
 
+  // Poll for PPTX slide elements once loaded and attach center-based scroll tracking
   useEffect(() => {
-    if (file) {
-      setLoading(false);
+    if (!file) return;
+    setLoading(false);
 
-      const timer = setTimeout(() => {
-        if (!scrollRef.current) return;
-        const slides = scrollRef.current.querySelectorAll('.slide');
-        const totalSlides = slides.length > 0 ? slides.length : 1;
+    let scrollCleanup = null;
+    let pollInterval = null;
+
+    const setupSlideTracking = () => {
+      const scrollEl = scrollRef.current;
+      if (!scrollEl) return false;
+
+      // Match all possible pptx slide wrapper selectors
+      const slides = scrollEl.querySelectorAll('.slide, [class*="slide-wrapper"], [class*="Slide"], div[data-slide-index]');
+      if (!slides || slides.length === 0) return false;
+
+      const totalSlides = slides.length;
+      if (onPageChangeRef.current) {
+        onPageChangeRef.current({ current: 1, total: totalSlides });
+      }
+
+      const onScroll = () => {
+        const scrollRect = scrollEl.getBoundingClientRect();
+        const visibleCenter = (scrollRect.top + scrollRect.bottom) / 2;
+
+        let currentSlide = 1;
+        let closestDist = Infinity;
+
+        slides.forEach((slideEl, idx) => {
+          const rect = slideEl.getBoundingClientRect();
+          const slideCenter = (rect.top + rect.bottom) / 2;
+          const dist = Math.abs(slideCenter - visibleCenter);
+          if (dist < closestDist) {
+            closestDist = dist;
+            currentSlide = idx + 1;
+          }
+        });
 
         if (onPageChangeRef.current) {
-          onPageChangeRef.current({ current: 1, total: totalSlides });
+          onPageChangeRef.current({ current: currentSlide, total: totalSlides });
         }
+      };
 
-        const scrollEl = scrollRef.current;
-        if (scrollEl && totalSlides > 1) {
-          const onScroll = () => {
-            const totalH = scrollEl.scrollHeight;
-            const rowH = totalH / totalSlides;
-            if (rowH > 0) {
-              const slide = Math.min(totalSlides, Math.max(1, Math.floor((scrollEl.scrollTop + rowH * 0.3) / rowH) + 1));
-              if (onPageChangeRef.current) {
-                onPageChangeRef.current({ current: slide, total: totalSlides });
-              }
-            }
-          };
-          scrollEl.addEventListener('scroll', onScroll, { passive: true });
-        }
-      }, 500);
+      scrollEl.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
 
-      return () => clearTimeout(timer);
-    }
+      scrollCleanup = () => {
+        scrollEl.removeEventListener('scroll', onScroll);
+      };
+
+      return true;
+    };
+
+    // Retry polling until slides are rendered by WASM
+    let attempts = 0;
+    pollInterval = setInterval(() => {
+      attempts++;
+      const success = setupSlideTracking();
+      if (success || attempts > 20) {
+        clearInterval(pollInterval);
+      }
+    }, 250);
+
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+      if (scrollCleanup) scrollCleanup();
+    };
   }, [file]);
 
   if (loading) {
@@ -82,7 +118,6 @@ export default function PptxViewer({ file, zoom = 1.0, onPageChange, showControl
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      {/* Floating micro thumbnail toggle button — visible ONLY when header controls are open */}
       {showControls && (
         <button 
           className="pptx-thumbnail-toggle"

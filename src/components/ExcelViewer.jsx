@@ -105,7 +105,7 @@ export default function ExcelViewer({ file, zoom = 1.0, onPageChange }) {
         ))}
       </div>
       
-      {/* Excel Table Container — Full 100% width and height edge-to-edge */}
+      {/* Excel Table Container */}
       <div ref={scrollRef} style={{ flex: 1, overflow: 'auto', background: '#fff', padding: 0, margin: 0, width: '100%', height: '100%' }}>
         <div 
           style={{ 
