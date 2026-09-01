@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -9,8 +9,9 @@ pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 export default function PdfViewer({ file }) {
   const [numPages, setNumPages] = useState(null);
-  const [pageNumber, setPageNumber] = useState(1);
   const [fileUrl, setFileUrl] = useState(null);
+  const [containerWidth, setContainerWidth] = useState(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     if (file) {
@@ -20,48 +21,57 @@ export default function PdfViewer({ file }) {
     }
   }, [file]);
 
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   function onDocumentLoadSuccess({ numPages }) {
     setNumPages(numPages);
-    setPageNumber(1);
   }
 
-  function changePage(offset) {
-    setPageNumber(prevPageNumber => prevPageNumber + offset);
-  }
-
-  function previousPage() {
-    changePage(-1);
-  }
-
-  function nextPage() {
-    changePage(1);
-  }
-
-  if (!fileUrl) return <div className="loader-container"><div className="spinner"></div><p>Loading PDF...</p></div>;
+  if (!fileUrl) return (
+    <div className="loader-container">
+      <div className="spinner"></div>
+      <p>Loading PDF...</p>
+    </div>
+  );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', alignItems: 'center', padding: '1rem' }}>
-      <div className="pdf-controls">
-        <button type="button" disabled={pageNumber <= 1} onClick={previousPage}>
-          Previous
-        </button>
-        <p>
-          Page {pageNumber} of {numPages || '--'}
-        </p>
-        <button type="button" disabled={pageNumber >= numPages} onClick={nextPage}>
-          Next
-        </button>
-      </div>
-
-      <div style={{ overflow: 'auto', flex: 1, display: 'flex', justifyContent: 'center', width: '100%' }}>
-        <Document
-          file={fileUrl}
-          onLoadSuccess={onDocumentLoadSuccess}
-          loading={<div className="loader-container"><div className="spinner"></div><p>Parsing PDF...</p></div>}
-        >
-          <Page pageNumber={pageNumber} />
-        </Document>
-      </div>
+    <div
+      ref={containerRef}
+      style={{ width: '100%', height: '100%', overflowY: 'auto', overflowX: 'hidden', background: '#fff' }}
+    >
+      <Document
+        file={fileUrl}
+        onLoadSuccess={onDocumentLoadSuccess}
+        loading={
+          <div className="loader-container">
+            <div className="spinner"></div>
+            <p>Parsing PDF...</p>
+          </div>
+        }
+      >
+        {numPages && Array.from({ length: numPages }, (_, i) => (
+          <div
+            key={i + 1}
+            style={{ display: 'flex', justifyContent: 'center', marginBottom: '4px' }}
+          >
+            <Page
+              pageNumber={i + 1}
+              width={containerWidth ? containerWidth - 2 : undefined}
+              renderAnnotationLayer
+              renderTextLayer
+            />
+          </div>
+        ))}
+      </Document>
     </div>
   );
 }

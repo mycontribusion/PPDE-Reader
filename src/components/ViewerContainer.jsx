@@ -10,27 +10,25 @@ export default function ViewerContainer({ file, onClose }) {
 
   const fileName = file.name;
   const extension = fileName.split('.').pop().toLowerCase();
+  // Use the full path if the browser exposes it, otherwise fallback to name
+  const fullPath = file.webkitRelativePath || file.path || fileName;
 
   const getFileIcon = () => {
     switch (extension) {
-      case 'pdf': return <FileText color="#ef4444" size={24} />;
-      case 'docx': return <FileText color="#3b82f6" size={24} />;
-      case 'xlsx': return <FileSpreadsheet color="#22c55e" size={24} />;
-      case 'pptx': return <Presentation color="#f97316" size={24} />;
-      default: return <FileIcon color="#94a3b8" size={24} />;
+      case 'pdf':   return <FileText color="#ef4444" size={20} />;
+      case 'docx':  return <FileText color="#3b82f6" size={20} />;
+      case 'xlsx':  return <FileSpreadsheet color="#22c55e" size={20} />;
+      case 'pptx':  return <Presentation color="#f97316" size={20} />;
+      default:      return <FileIcon color="#94a3b8" size={20} />;
     }
   };
 
   const renderViewer = () => {
     switch (extension) {
-      case 'pdf':
-        return <PdfViewer file={file} />;
-      case 'docx':
-        return <DocxViewer file={file} />;
-      case 'xlsx':
-        return <ExcelViewer file={file} />;
-      case 'pptx':
-        return <PptxViewer file={file} />;
+      case 'pdf':  return <PdfViewer file={file} />;
+      case 'docx': return <DocxViewer file={file} />;
+      case 'xlsx': return <ExcelViewer file={file} />;
+      case 'pptx': return <PptxViewer file={file} />;
       default:
         return (
           <div className="loader-container">
@@ -43,18 +41,21 @@ export default function ViewerContainer({ file, onClose }) {
   return (
     <div className="viewer-container glass-panel">
       <div className="viewer-header">
+        {/* Scrollable title — never wraps, icon is fixed-width */}
         <div className="viewer-header-info">
-          {getFileIcon()}
-          <span className="file-name">{fileName}</span>
-          <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
-            ({(file.size / 1024 / 1024).toFixed(2)} MB)
-          </span>
+          <span style={{ flexShrink: 0 }}>{getFileIcon()}</span>
+          <div className="viewer-title-scroll">
+            <span className="file-name" title={fullPath}>{fullPath}</span>
+            <span className="file-size">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+          </div>
         </div>
-        <button className="btn-close" onClick={onClose}>
+
+        {/* Close button — always visible, never pushed off-screen */}
+        <button className="btn-close" onClick={onClose} aria-label="Close document">
           <X size={18} /> Close
         </button>
       </div>
-      
+
       <div className="viewer-content">
         {renderViewer()}
       </div>
